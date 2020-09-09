@@ -16,14 +16,20 @@ def long(currency_pair, order_size):
     Args:
         currency_pair: a string, must be all caps like "EUR_USD". convert a currency pair you'd see
         like EUR/USD or USD/JPY to EUR_USD or USD_JPY respectively.
-        order_size: a string, the number of units of the currency pair to be ordered
+        order_size: an integer, the number of units of the currency pair to be ordered
     
     Returns:
         An integer representing the HTTP status code of the API call
     """
     params = {
         "order": {
-            "units": order_size,
+            "stopLossOnFill": {
+            "price": "1.7000"
+            },
+            "takeProfitOnFill": {
+            "price": "1.14530"
+            },
+            "units": str(order_size),
             "instrument": currency_pair,
             "timeInForce": "IOC",
             "type": "MARKET",
@@ -41,14 +47,20 @@ def short(currency_pair, order_size):
     Args:
         currency_pair: a string, must be all caps like "EUR_USD". convert a currency pair you'd see
         like EUR/USD or USD/JPY to EUR_USD or USD_JPY respectively.
-        order_size: order_size: a string, the number of units of the currency pair to be ordered
+        order_size: order_size: an integer, the number of units of the currency pair to be ordered
     
     Returns:
         An integer, the HTTP status code of the API call
     """
     params = {
         "order": {
-            "units": "-" + order_size,
+            "stopLossOnFill": {
+            "price": "1.7000"
+            },
+            "takeProfitOnFill": {
+            "price": "1.14530"
+            },
+            "units": "-" + str(order_size),
             "instrument": currency_pair,
             "timeInForce": "IOC",
             "type": "MARKET",
@@ -92,6 +104,8 @@ def get_candles(pair, count, granularity, price='M'):
                     float(parsed_response['candles'][i]['mid']['h']),
                     float(parsed_response['candles'][i]['mid']['l']),
                     float(parsed_response['candles'][i]['mid']['c']),
-                    float(parsed_response['candles'][i]['volume'])]
+                    float(parsed_response['candles'][i]['volume']),
+                    parsed_response['candles'][i]['time']]
         candles += [next_bid]
     return candles
+

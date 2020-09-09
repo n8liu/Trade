@@ -1,12 +1,3 @@
-""" Contains all moving averages.
-
-Lists several moving average functions, including simple moving averages
-and exponential moving averages. These can be placed on top of other indicators
-to make things happen. Most baselines will be some type of moving average.
-"""
-
-import numpy as np
-
 """ Simple Moving Averages
 
 Calculates by adding the values of each index and dividing by the length of 
@@ -15,6 +6,7 @@ the array.
 Returns:
     a single float representing the average of the given list.  
 """
+
 def high(array):
     """see Simple Moving Average docstring
     
