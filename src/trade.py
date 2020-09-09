@@ -10,5 +10,3 @@ def find_trades():
         order.short("EUR_USD", 1000)
     else:
         order.long("EUR_USD", 1000)
-
-find_trades()

@@ -109,3 +109,23 @@ def get_candles(pair, count, granularity, price='M'):
         candles += [next_bid]
     return candles
 
+def is_order_open(pair):
+    """ returns True if there's an open order for the given pair,
+    False if there isn't an open order for the given pair
+
+    args:
+    pair: a string, must be all caps like "EUR_USD". convert a currency pair you'd see
+        like EUR/USD or USD/JPY to EUR_USD or USD_JPY respectively.
+    
+    returns:
+    a boolean, True if an open order in the given pair exists, False otherwise.
+    """
+    response = requests.get(f"https://api-fxpractice.oanda.com/v3/accounts/{account_number}/openTrades", 
+                                    headers=header)
+    parsed_response = json.loads(response.text)
+    
+    if parsed_response['trades']:
+        for trade in parsed_response['trades']:
+            if trade['instrument'] == pair:
+                return True
+    return False
