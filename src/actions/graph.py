@@ -10,7 +10,7 @@ def candlestick_chart(pair, count, granularity):
                                 high=[candle[1] for candle in candles],
                                 low=[candle[2] for candle in candles],
                                 close=[candle[3] for candle in candles])
-                    ])
+    ])
     fig.show()
 
 def cross_over(ma, pair, count, granularity):
