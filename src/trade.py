@@ -10,3 +10,9 @@ def find_trades():
         order.short("EUR_USD", 1000)
     else:
         order.long("EUR_USD", 1000)
+
+def trade():
+    if not order.is_order_open("EUR_USD"):
+        find_trades()
+
+trades()

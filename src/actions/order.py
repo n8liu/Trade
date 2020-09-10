@@ -1,6 +1,7 @@
 import requests
 import json
 from decouple import config
+import risk
 
 account_number = config('ACCOUNT_NUMBER')
 practice_trade_token = config('PRACTICE_TRADE_TOKEN')
@@ -23,12 +24,6 @@ def long(currency_pair, order_size):
     """
     params = {
         "order": {
-            "stopLossOnFill": {
-            "price": "1.7000"
-            },
-            "takeProfitOnFill": {
-            "price": "1.14530"
-            },
             "units": str(order_size),
             "instrument": currency_pair,
             "timeInForce": "IOC",
@@ -54,12 +49,6 @@ def short(currency_pair, order_size):
     """
     params = {
         "order": {
-            "stopLossOnFill": {
-            "price": "1.7000"
-            },
-            "takeProfitOnFill": {
-            "price": "1.14530"
-            },
             "units": "-" + str(order_size),
             "instrument": currency_pair,
             "timeInForce": "IOC",
@@ -67,7 +56,7 @@ def short(currency_pair, order_size):
             "positionFill": "DEFAULT",
         }
     }
-    response = requests.post('https://api-fxpractice.oanda.com/v3/accounts/101-001-11802828-001/orders', 
+    response = requests.post(f'https://api-fxpractice.oanda.com/v3/accounts/{account_number}/orders', 
                             headers=header, data=json.dumps(params))
     print('short', response.status_code)
     return response.status_code
@@ -129,3 +118,16 @@ def is_order_open(pair):
             if trade['instrument'] == pair:
                 return True
     return False
+
+def get_open_orders():
+    """ returns a list of current open orders
+    """
+    open_orders = []
+    response = requests.get(f"https://api-fxpractice.oanda.com/v3/accounts/{account_number}/openTrades", 
+                                    headers=header)
+    parsed_response = json.loads(response.text)
+    
+    if parsed_response['trades']:
+        for trade in parsed_response['trades']:
+            open_orders.append(trade['instrument'])
+    return open_orders
