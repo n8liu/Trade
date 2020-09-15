@@ -1,19 +1,29 @@
-import order
+from . import order
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 def candlestick_chart(pair, count, granularity):
     candles = order.get_candles(pair, count, granularity, 'M')
     fig = go.Figure(data=[go.Candlestick(
-                                x=[candle[5] for candle in candles],
-                                open=[candle[0] for candle in candles],
-                                high=[candle[1] for candle in candles],
-                                low=[candle[2] for candle in candles],
-                                close=[candle[3] for candle in candles])
+                                x=[candle['time'] for candle in candles],
+                                open=[candle['mid'][0] for candle in candles],
+                                high=[candle['mid'][1] for candle in candles],
+                                low=[candle['mid'][2] for candle in candles],
+                                close=[candle['mid'][3] for candle in candles])
     ])
     fig.show()
 
-def create_strategy_chart(**kwargs):
+def trade_timeline(candles):
+    fig = go.Figure(data=[go.Candlestick(
+                                x=[candle['time'] for candle in candles],
+                                open=[candle['mid'][0] for candle in candles],
+                                high=[candle['mid'][1] for candle in candles],
+                                low=[candle['mid'][2] for candle in candles],
+                                close=[candle['mid'][3] for candle in candles])
+    ])
+    fig.show()
+
+def create_strategy_chart(candles, **kwargs):
     """ shows a figure
 
     args:
@@ -25,6 +35,15 @@ def create_strategy_chart(**kwargs):
         rows=1, cols=1,
         shared_xaxes=True
     )
+    fig.add_trace(
+        go.Candlestick(
+            x=[candle['time'] for candle in candles],
+            open=[candle['mid'][0] for candle in candles],
+            high=[candle['mid'][1] for candle in candles],
+            low=[candle['mid'][2] for candle in candles],
+            close=[candle['mid'][3] for candle in candles]
+        )
+    )
     for key, indicator in kwargs.items():
         fig.add_trace(
             go.Scatter(
@@ -33,7 +52,6 @@ def create_strategy_chart(**kwargs):
                 name=key
             )
         )
-
     fig.show()
 
 def show_fig():
@@ -45,8 +63,8 @@ def show_fig():
     create_strategy_chart(ma_9=ma_9, ma_50=ma_50, ma_200=ma_200)
 
 def generate_crossover_data(ma, candles):
-        data = []
-        for i in range(len(candles)-ma):
-            data.append({'x': candles[ma+i][5],
-                        'y': sum(candle[3] for candle in candles[i:ma+i]) / ma})
-        return data
+    data = []
+    for i in range(len(candles)-ma):
+        data.append({'x': candles[ma+i]['time'],
+                    'y': sum(candle['mid'][3] for candle in candles[i:ma+i]) / ma})
+    return data

@@ -12,7 +12,7 @@ def high(array):
     
     Calculated using the high price of each candle [o,h,l,c]. 
     """
-    return sum([candle[1] for candle in array]) / len(array)
+    return sum([candle['mid'][1] for candle in array]) / len(array)
     # sum all candle high prices in array and divide by array length
     
 def low(array):
@@ -20,7 +20,7 @@ def low(array):
     
     Calculated using the low price of each candle [o,h,l,c]. 
     """
-    return sum([candle[2] for candle in array]) / len(array)
+    return sum([candle['mid'][2] for candle in array]) / len(array)
     # sum all candle low prices in array and divide by array length
 
 def close(array):
@@ -28,5 +28,5 @@ def close(array):
     
     Calculated using the closing price of each candle [o,h,l,c]. 
     """
-    return sum([candle[3] for candle in array]) / len(array) 
+    return sum([candle['mid'][3] for candle in array]) / len(array) 
     # sum all candle close prices in array and divide by array length

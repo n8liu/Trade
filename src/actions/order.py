@@ -1,7 +1,6 @@
 import requests
 import json
 from decouple import config
-import risk
 
 account_number = config('ACCOUNT_NUMBER')
 practice_trade_token = config('PRACTICE_TRADE_TOKEN')
@@ -31,8 +30,8 @@ def long(currency_pair, order_size):
             "positionFill": "DEFAULT",
         }
     }
-    response = requests.post(f'https://api-fxpractice.oanda.com/v3/accounts/{account_number}/orders', 
-                            headers=header, data=json.dumps(params))
+    response = requests.post(f"https://api-fxpractice.oanda.com/v3/accounts/{account_number}/orders", 
+                             headers=header, data=json.dumps(params))
     print('long', response.status_code)
     return response.status_code
 
@@ -61,7 +60,7 @@ def short(currency_pair, order_size):
     print('short', response.status_code)
     return response.status_code
 
-def get_candles(pair, count, granularity, price='M'):
+def get_mid_candles(pair, count, granularity):
     """ Returns candles that are ready to be used in calculations
 
     args:
@@ -77,7 +76,7 @@ def get_candles(pair, count, granularity, price='M'):
     """
     data = (
         ('count', str(count)),
-        ('price', price),
+        ('price', 'M'),
         ('granularity', granularity),
     )
 
@@ -89,13 +88,54 @@ def get_candles(pair, count, granularity, price='M'):
         raise Exception(ValueError, f"status code is not 200, but {response.status_code} at {pair}")
     candles = []
     for i in range(int(data[0][1])): # iterate through the number of candles we got.
-        next_bid = [float(parsed_response['candles'][i]['mid']['o']), 
-                    float(parsed_response['candles'][i]['mid']['h']),
-                    float(parsed_response['candles'][i]['mid']['l']),
-                    float(parsed_response['candles'][i]['mid']['c']),
-                    float(parsed_response['candles'][i]['volume']),
-                    parsed_response['candles'][i]['time']]
-        candles += [next_bid]
+        next_mid = {'mid': [float(parsed_response['candles'][i]['mid']['o']), 
+                            float(parsed_response['candles'][i]['mid']['h']),
+                            float(parsed_response['candles'][i]['mid']['l']),
+                            float(parsed_response['candles'][i]['mid']['c'])],
+                    'volume': float(parsed_response['candles'][i]['volume']),
+                    'time': parsed_response['candles'][i]['time']}
+        candles += [next_mid]
+    return candles
+
+def get_ba_candles(pair, count, granularity):
+    """ Returns candles that are ready to be used in calculations
+
+    args:
+        pair: string; "ABC_XYZ" for which pair we should get data from.
+        count: integer, number of candles to return
+        granularity: string. Time frame of the candles, ('S5', 'M1', 'M5', 'M15', 'M30', 'H1-H4', 
+        'H6', 'H8', 'H12', 'D', 'W')
+        price: which candles are returned, either bid candles, ask candles, or midpoint of both.
+        ('B', 'A', 'BA', or 'M')
+    
+    returns:
+        a list of candles
+    """
+    data = (
+        ('count', str(count)),
+        ('price', 'BA'),
+        ('granularity', granularity),
+    )
+
+    response = requests.get(f"https://api-fxpractice.oanda.com/v3/instruments/{pair}/candles", 
+                                    headers=header, params=data)
+    parsed_response = json.loads(response.text)
+    
+    if response.status_code != 200: # throw error if GET doesn't go through
+        raise Exception(ValueError, f"status code is not 200, but {response.status_code} at {pair}")
+    candles = []
+    for i in range(int(data[0][1])): # iterate through the number of candles we got.
+        next_candle = {'bid': [float(parsed_response['candles'][i]['bid']['o']), 
+                            float(parsed_response['candles'][i]['bid']['h']),
+                            float(parsed_response['candles'][i]['bid']['l']),
+                            float(parsed_response['candles'][i]['bid']['c'])],
+                        'ask': [float(parsed_response['candles'][i]['ask']['o']), 
+                            float(parsed_response['candles'][i]['ask']['h']),
+                            float(parsed_response['candles'][i]['ask']['l']),
+                            float(parsed_response['candles'][i]['ask']['c'])],
+                        'volume': float(parsed_response['candles'][i]['volume']),
+                        'time': parsed_response['candles'][i]['time']}
+        candles += [next_candle]
     return candles
 
 def is_order_open(pair):
@@ -118,6 +158,27 @@ def is_order_open(pair):
             if trade['instrument'] == pair:
                 return True
     return False
+
+def get_order_info(pair):
+    """ returns:
+    {'id': '7190', 
+    'instrument': 'EUR_USD', 'price': '1.18501', 
+    'openTime': '2020-09-15T17:25:28.523607972Z', 'initialUnits': '-1000', 
+    'initialMarginRequired': '23.7016', 'state': 'OPEN', 
+    'currentUnits': '-1000', 
+    'realizedPL': '0.0000', 'financing': '0.0000', 'dividendAdjustment': '0.0000', 
+    'unrealizedPL': '-0.0600', 'marginUsed': '23.7002'}
+    """
+    response = requests.get(f"https://api-fxpractice.oanda.com/v3/accounts/{account_number}/openTrades", 
+                                    headers=header)
+    parsed_response = json.loads(response.text)
+    
+    if parsed_response['trades']:
+        for trade in parsed_response['trades']:
+            if trade['instrument'] == pair:
+                return trade
+    return f'{pair} has no open order'
+
 
 def get_open_orders():
     """ returns a list of current open orders
