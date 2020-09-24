@@ -10,56 +10,9 @@ header = {
     'Authorization': practice_trade_token, # change this to live when in production
 }
 
-def long(currency_pair, order_size):
-    """ executes a short order using Oanda API
-
-    Args:
-        currency_pair: a string, must be all caps like "EUR_USD". convert a currency pair you'd see
-        like EUR/USD or USD/JPY to EUR_USD or USD_JPY respectively.
-        order_size: an integer, the number of units of the currency pair to be ordered
-    
-    Returns:
-        An integer representing the HTTP status code of the API call
-    """
-    params = {
-        "order": {
-            "units": str(order_size),
-            "instrument": currency_pair,
-            "timeInForce": "IOC",
-            "type": "MARKET",
-            "positionFill": "DEFAULT",
-        }
-    }
-    response = requests.post(f"https://api-fxpractice.oanda.com/v3/accounts/{account_number}/orders", 
-                             headers=header, data=json.dumps(params))
-    print('long', response.status_code)
-    return response.status_code
-
-def short(currency_pair, order_size):
-    """ executes a short order using Oanda API
-
-    Args:
-        currency_pair: a string, must be all caps like "EUR_USD". convert a currency pair you'd see
-        like EUR/USD or USD/JPY to EUR_USD or USD_JPY respectively.
-        order_size: order_size: an integer, the number of units of the currency pair to be ordered
-    
-    Returns:
-        An integer, the HTTP status code of the API call
-    """
-    params = {
-        "order": {
-            "units": "-" + str(order_size),
-            "instrument": currency_pair,
-            "timeInForce": "IOC",
-            "type": "MARKET",
-            "positionFill": "DEFAULT",
-        }
-    }
-    response = requests.post(f'https://api-fxpractice.oanda.com/v3/accounts/{account_number}/orders', 
-                            headers=header, data=json.dumps(params))
-    print('short', response.status_code)
-    return response.status_code
-
+#####################################################################################################
+# Candles                                                                                           #
+#####################################################################################################
 def get_mid_candles(pair, count, granularity):
     """ Returns candles that are ready to be used in calculations
 
@@ -138,6 +91,9 @@ def get_ba_candles(pair, count, granularity):
         candles += [next_candle]
     return candles
 
+#####################################################################################################
+# Trades - Get Details on Current Positions                                                         #
+#####################################################################################################
 def is_order_open(pair):
     """ returns True if there's an open order for the given pair,
     False if there isn't an open order for the given pair
@@ -177,8 +133,9 @@ def get_order_info(pair):
         for trade in parsed_response['trades']:
             if trade['instrument'] == pair:
                 return trade
-    return f'{pair} has no open order'
-
+        print('order pair:', pair, trade)
+    
+    return f'could not find {pair} using get_order_info().'
 
 def get_open_orders():
     """ returns a list of current open orders
@@ -192,3 +149,124 @@ def get_open_orders():
         for trade in parsed_response['trades']:
             open_orders.append(trade['instrument'])
     return open_orders
+
+
+#####################################################################################################
+# Order - Create Orders and Modify Trades                                                           #
+#####################################################################################################
+def long(currency_pair, order_size):
+    """ executes a short order using Oanda API
+
+    Args:
+        currency_pair: a string, must be all caps like "EUR_USD". convert a currency pair you'd see
+        like EUR/USD or USD/JPY to EUR_USD or USD_JPY respectively.
+        order_size: an integer, the number of units of the currency pair to be ordered
+    
+    Returns:
+        An integer representing the HTTP status code of the API call
+    """
+    params = {
+        "order": {
+            "units": str(order_size),
+            "instrument": currency_pair,
+            "timeInForce": "IOC",
+            "type": "MARKET",
+            "positionFill": "DEFAULT",
+        }
+    }
+    response = requests.post(f"https://api-fxpractice.oanda.com/v3/accounts/{account_number}/orders", 
+                             headers=header, data=json.dumps(params))
+    print('long', response.status_code)
+    return response.status_code
+
+def short(currency_pair, order_size):
+    """ executes a short order using Oanda API
+
+    Args:
+        currency_pair: a string, must be all caps like "EUR_USD". convert a currency pair you'd see
+        like EUR/USD or USD/JPY to EUR_USD or USD_JPY respectively.
+        order_size: order_size: an integer, the number of units of the currency pair to be ordered
+    
+    Returns:
+        An integer, the HTTP status code of the API call
+    """
+    params = {
+        "order": {
+            "units": "-" + str(order_size),
+            "instrument": currency_pair,
+            "timeInForce": "IOC",
+            "type": "MARKET",
+            "positionFill": "DEFAULT",
+        }
+    }
+    response = requests.post(f'https://api-fxpractice.oanda.com/v3/accounts/{account_number}/orders', 
+                            headers=header, data=json.dumps(params))
+    print('short', response.status_code)
+    return response.status_code
+
+def create_take_profit(pair, distance):
+    """
+    """
+    trade = get_order_info(pair)
+    print('distance', distance)
+    print(trade['currentUnits'])
+    #print('current units', int(trade['currentUnits']))
+    if int(trade['currentUnits']) < 0: # if trade is short
+        price = float(trade['price']) - 1.0 * distance
+    elif int(trade['currentUnits']) > 0: # if trade is long
+        price = float(trade['price']) + 1.0 * distance
+    
+    print('take_profit:', str(price)[:6])
+    params = {
+        "order": {
+            "timeInForce": "GTC",
+            "price": str(price)[:6],
+            "type": "TAKE_PROFIT",
+            "tradeID": trade['id']
+        }
+    }
+    response = requests.post(f'https://api-fxpractice.oanda.com/v3/accounts/{account_number}/orders', 
+                            headers=header, data=json.dumps(params))
+    print('take profit', response.status_code)
+    return response.status_code
+
+def create_stop_loss(pair, distance):
+    """
+    """
+    trade = get_order_info(pair)
+    print('distance', distance)
+    print('current units', int(trade['currentUnits']))
+    if int(trade['currentUnits']) < 0: # if trade is short
+        price = float(trade['price']) + 1.0 * distance
+    elif int(trade['currentUnits']) > 0: # if trade is long
+        price = float(trade['price']) - 1.0 * distance
+    print('take_profit:', str(price)[:6])
+    params = {
+        "order": {
+            "timeInForce": "GTC",
+            "price": str(price)[:6],
+            "type": "STOP_LOSS",
+            "tradeID": trade['id']
+        }
+    }
+    response = requests.post(f'https://api-fxpractice.oanda.com/v3/accounts/{account_number}/orders', 
+                            headers=header, data=json.dumps(params))
+    print('stop loss', response.status_code)
+    return response.status_code
+
+def close_trade(pair):
+    """
+    """
+    info = get_order_info(pair)
+    if int(info['currentUnits']) < 0: # if short
+        params = {
+            "longUnits": "ALL"
+        }
+    else:
+        params = {
+            "shortUnits": "ALL"
+        }
+    response = requests.put(f'https://api-fxpractice.oanda.com/v3/accounts/{account_number}/positions/{pair}/close', 
+                            headers=header, data=json.dumps(params))
+    print(pair,' trade closed', response.status_code)
+    return response.status_code

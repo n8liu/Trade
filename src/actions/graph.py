@@ -13,17 +13,7 @@ def candlestick_chart(pair, count, granularity):
     ])
     fig.show()
 
-def trade_timeline(candles):
-    fig = go.Figure(data=[go.Candlestick(
-                                x=[candle['time'] for candle in candles],
-                                open=[candle['mid'][0] for candle in candles],
-                                high=[candle['mid'][1] for candle in candles],
-                                low=[candle['mid'][2] for candle in candles],
-                                close=[candle['mid'][3] for candle in candles])
-    ])
-    fig.show()
-
-def create_strategy_chart(candles, **kwargs):
+def create_strategy_chart(candles, trades=[], **kwargs):
     """ shows a figure
 
     args:
@@ -49,22 +39,19 @@ def create_strategy_chart(candles, **kwargs):
             go.Scatter(
                 x=[elem['x'] for elem in indicator],
                 y=[elem['y'] for elem in indicator],
-                name=key
+                name=key,
+            )
+        )
+    for trade in trades:
+        if trade['order']['position'] == 'long':
+            color = 'green'
+        elif trade['order']['position'] == 'short':
+            color = 'red'
+        fig.add_trace(
+            go.Scatter(
+                x=[trade['entry']['time'], trade['exit']['time']],
+                y=[trade['entry']['price'], trade['entry']['price']],
+                marker_color=color
             )
         )
     fig.show()
-
-def show_fig():
-    candles = order.get_candles("EUR_USD", 500, 'M15', 'M')
-    ma_9 = generate_crossover_data(9, candles)
-    ma_50 = generate_crossover_data(50, candles)
-    ma_200 = generate_crossover_data(200, candles)
-
-    create_strategy_chart(ma_9=ma_9, ma_50=ma_50, ma_200=ma_200)
-
-def generate_crossover_data(ma, candles):
-    data = []
-    for i in range(len(candles)-ma):
-        data.append({'x': candles[ma+i]['time'],
-                    'y': sum(candle['mid'][3] for candle in candles[i:ma+i]) / ma})
-    return data
